@@ -13,7 +13,8 @@ import (
 type FlagsCopy uint
 
 const (
-	CopyRecursive     FlagsCopy = 1 << iota
+	CopyContent       FlagsCopy = 1 << iota
+	CopyRecursive
 	CopyPreserveMode
 	CopyPreserveOwner
 	CopyParents
@@ -25,7 +26,7 @@ const (
 	DefaultFileMode = 0644
 )
 
-func Copy(flags FlagsCopy, src, dest string, ) error {
+func Copy(flags FlagsCopy, src, dest string) error {
 	srcPrefix := string(os.PathSeparator)
 	if CopyParents&flags != 0 {
 		fullSrc, err := filepath.Abs(src)
@@ -38,6 +39,9 @@ func Copy(flags FlagsCopy, src, dest string, ) error {
 	}
 	if CopyRecursive&flags != 0 {
 		return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+			if path == src && CopyContent&flags != 0 {
+				return nil
+			}
 			if err != nil {
 				return err
 			}
