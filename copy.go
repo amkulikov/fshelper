@@ -6,9 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
-
-	"golang.org/x/sys/unix"
 )
 
 type FlagsCopy uint
@@ -27,6 +24,8 @@ const (
 	DefaultDirMode  = 0755
 	DefaultFileMode = 0644
 )
+
+var ErrNotSupported = errors.New("not supported")
 
 func Copy(flags FlagsCopy, src, dest string) error {
 	srcPrefix := string(os.PathSeparator)
@@ -94,17 +93,12 @@ func copyFile(srcPrefix, src, dest string, info os.FileInfo, flags FlagsCopy) (e
 	defer destFile.Close()
 
 	if CopyPreserveMode&flags != 0 {
-		if err = destFile.Chmod(info.Mode()); err != nil {
+		if err = os.Chmod(destFile.Name(), info.Mode()); err != nil {
 			return err
 		}
 	}
-	if CopyPreserveOwner&flags != 0 && runtime.GOOS != "windows" {
-		unixStat, ok := info.Sys().(*unix.Stat_t)
-		if ok {
-			if err := destFile.Chown(int(unixStat.Uid), int(unixStat.Gid)); err != nil {
-				return err
-			}
-		}
+	if CopyPreserveOwner&flags != 0 {
+		preserveOwner(destFile, info)
 	}
 
 	srcFile, err := os.Open(src)
