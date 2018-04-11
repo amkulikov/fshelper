@@ -25,7 +25,7 @@ const (
 	DefaultFileMode = 0644
 )
 
-func Copy(src, dest string, flags FlagsCopy) error {
+func Copy(flags FlagsCopy, src, dest string, ) error {
 	srcPrefix := string(os.PathSeparator)
 	if CopyParents&flags != 0 {
 		fullSrc, err := filepath.Abs(src)
