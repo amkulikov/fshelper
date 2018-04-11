@@ -2,6 +2,7 @@ package fshelper
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ const (
 	CopyPreserveOwner
 	CopyParents
 	CopyVerbose
+	copyOneFile
 )
 
 const (
@@ -58,17 +60,34 @@ func Copy(flags FlagsCopy, src, dest string) error {
 	}
 	if info.IsDir() {
 		return errors.New("src is directory, CopyRecursive is required")
+	} else {
+		return copyFile(srcPrefix, src, dest, info, flags|copyOneFile)
 	}
-	return copyFile(srcPrefix, src, dest, info, flags)
 }
 
-func copyFile(srcPrefix, src, dest string, info os.FileInfo, flags FlagsCopy) error {
-	destPart, err := filepath.Rel(srcPrefix, src)
+func copyFile(srcPrefix, src, dest string, info os.FileInfo, flags FlagsCopy) (err error) {
+	relPart, err := filepath.Rel(srcPrefix, src)
 	if err != nil {
 		return err
 	}
 
-	destFile, err := os.OpenFile(filepath.Join(dest, destPart), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, DefaultFileMode)
+	_, destFileName := filepath.Split(dest)
+	if copyOneFile&flags == 0 || filepath.Dir(relPart) != "." || destFileName == "" {
+		dest = filepath.Join(dest, relPart)
+	}
+
+	if CopyVerbose&flags != 0 {
+		fmt.Printf("f: %s -> %s ", src, dest)
+		defer func() {
+			if err == nil {
+				fmt.Println(": OK!")
+			} else {
+				fmt.Printf(": %s\n", err)
+			}
+		}()
+	}
+
+	destFile, err := os.OpenFile(dest, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, DefaultFileMode)
 	if err != nil {
 		return err
 	}
@@ -98,16 +117,29 @@ func copyFile(srcPrefix, src, dest string, info os.FileInfo, flags FlagsCopy) er
 	return err
 }
 
-func copyDirectory(srcPrefix, src, dest string, info os.FileInfo, flags FlagsCopy) error {
+func copyDirectory(srcPrefix, src, dest string, info os.FileInfo, flags FlagsCopy) (err error) {
 	destPart, err := filepath.Rel(srcPrefix, src)
 	if err != nil {
 		return err
 	}
+	dest = filepath.Join(dest, destPart)
+
+	if CopyVerbose&flags != 0 {
+		fmt.Printf("d: %s -> %s ", src, dest)
+		defer func() {
+			if err == nil {
+				fmt.Println(": OK!")
+			} else {
+				fmt.Printf(": %s\n", err)
+			}
+		}()
+	}
+
 	mode := os.ModeDir
 	if CopyPreserveMode&flags != 0 {
 		mode |= info.Mode()
 	} else {
 		mode |= DefaultDirMode
 	}
-	return os.MkdirAll(filepath.Join(dest, destPart), mode)
+	return os.MkdirAll(dest, mode)
 }

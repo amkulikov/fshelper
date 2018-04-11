@@ -37,7 +37,11 @@ func TestCopy(t *testing.T) {
 	if err := createSourceData(); err != nil {
 		t.Fatalf("Can't create source data: %s", err)
 	}
-	if err := Copy(CopyRecursive|CopyParents|CopyPreserveMode, srcBaseDir, destBaseDir); err != nil {
+	if err := Copy(CopyRecursive|CopyPreserveMode|CopyVerbose, srcBaseDir, destBaseDir); err != nil {
+		t.Fatalf("Can't copy: %s", err)
+	}
+
+	if err := Copy(CopyPreserveMode|CopyVerbose, filepath.Join(srcBaseDir, "1.txt"), filepath.Join(srcBaseDir, "5.txt")); err != nil {
 		t.Fatalf("Can't copy: %s", err)
 	}
 }
