@@ -36,7 +36,11 @@ func Copy(flags FlagsCopy, src, dest string) error {
 		}
 		src = fullSrc
 	} else {
-		srcPrefix = filepath.Dir(src)
+		if CopyContent&flags != 0 {
+			srcPrefix = src
+		} else {
+			srcPrefix = filepath.Dir(src)
+		}
 	}
 	if CopyRecursive&flags != 0 {
 		return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
